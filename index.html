@@ -4,7 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Merch 2026 · Calendario</title>
-<script src="https://accounts.google.com/gsi/client" async defer></script>
 
 <style>
 /* ── RESET & TOKENS ──────────────────────────────────────────────────────── */
@@ -84,7 +83,7 @@ header{
 }
 
 /* ── MAIN ────────────────────────────────────────────────────────────────── */
-main{flex:1;padding:24px 24px 64px;max-width:1400px;width:100%;margin:0 auto}
+main{flex:1;padding:24px;max-width:1400px;width:100%;margin:0 auto}
 
 .view{display:none}
 .view.active{display:block}
@@ -473,8 +472,15 @@ main{flex:1;padding:24px 24px 64px;max-width:1400px;width:100%;margin:0 auto}
     <button class="nav-tab" data-view="timeline">⬛ <span>Timeline</span></button>
     <button class="nav-tab" data-view="products">📦 <span>Productos</span></button>
     <button class="nav-tab" data-view="notes">📝 <span>Notas</span></button>
-    <button class="nav-tab" data-view="history">🕐 <span>Historial</span></button>
   </nav>
+  <button onclick="exportarDatos()" style="
+    font-family:var(--font-mono);font-size:12px;
+    padding:7px 16px;border-radius:var(--r);
+    cursor:pointer;border:1px solid var(--accent);
+    background:var(--accent);color:#fff;
+    display:inline-flex;align-items:center;gap:6px;
+    letter-spacing:.3px;transition:all .15s;margin-left:12px;
+  ">⬇ Exportar</button>
 </header>
 
 <main>
@@ -529,55 +535,7 @@ main{flex:1;padding:24px 24px 64px;max-width:1400px;width:100%;margin:0 auto}
   <div class="notes-grid" id="notesGrid"></div>
 </div>
 
-<!-- ── HISTORY VIEW ─────────────────────────────────────────────────────── -->
-<div class="view fade-in" id="view-history">
-  <div class="sec-head">
-    <div>
-      <div class="sec-title">Historial de Ediciones</div>
-      <div class="sec-sub">Registro de todos los cambios realizados · más reciente primero</div>
-    </div>
-    <button class="btn btn-ghost btn-sm" onclick="loadHistory()">↻ Actualizar</button>
-  </div>
-  <div id="historyGrid"></div>
-</div>
-
 </main><!-- /main -->
-<!-- ── USER BAR ──────────────────────────────────────────────────────────── -->
-<div id="userBar" style="position:fixed;bottom:0;left:0;right:0;
-  background:rgba(242,242,247,.96);backdrop-filter:blur(12px);
-  border-top:1px solid var(--border);
-  padding:8px 28px;display:flex;align-items:center;justify-content:space-between;
-  z-index:90;font-size:12px;color:var(--muted)">
-  <div id="userInfo" style="display:flex;align-items:center;gap:8px">
-    <div id="userAvatar" style="width:24px;height:24px;border-radius:50%;
-      background:var(--border2);display:flex;align-items:center;justify-content:center;
-      font-size:10px;font-weight:600;color:var(--muted)">?</div>
-    <span id="userName">No conectado</span>
-    <span id="userRole" style="font-size:10px;padding:1px 7px;border-radius:10px;
-      background:var(--surface2);border:1px solid var(--border)">visitante</span>
-  </div>
-  <div style="display:flex;align-items:center;gap:12px">
-    <span id="syncStatus" style="font-size:11px;color:var(--muted)">⬤ Sin conectar</span>
-    <button id="btnSync" class="btn btn-ghost btn-sm" onclick="syncNow()" style="display:none">↑ Guardar en Sheets</button>
-    <div id="btnGoogleLogin" style="display:none">
-      <div id="g_id_onload"
-        data-client_id="TU_GOOGLE_CLIENT_ID"
-        data-callback="onGoogleLogin"
-        data-auto_select="false">
-      </div>
-      <div class="g_id_signin"
-        data-type="standard"
-        data-size="small"
-        data-theme="outline"
-        data-text="sign_in_with"
-        data-shape="pill"
-        data-logo_alignment="left">
-      </div>
-    </div>
-    <button id="btnLogout" class="btn btn-ghost btn-sm" onclick="logout()" style="display:none">Cerrar sesión</button>
-  </div>
-</div>
-
 </div><!-- /app -->
 
 <!-- ── PRODUCT MODAL ──────────────────────────────────────────────────────── -->
@@ -655,19 +613,6 @@ main{flex:1;padding:24px 24px 64px;max-width:1400px;width:100%;margin:0 auto}
 <div class="toast-wrap" id="toastWrap"></div>
 
 <script>
-// ── CONFIGURACIÓN ─────────────────────────────────────────────────────────────
-// ▶ PASO 1: Pega aquí la URL de tu Apps Script desplegado
-const APPS_SCRIPT_URL = "https://script.google.com/a/macros/qin.mx/s/AKfycbwZ38mw3DZcBkcMPiEixAch7WPYpt_-E9Qev3lPSlfciNb0Frbfa3ypxWHbb4HEsKm7/exec";
-
-// ▶ PASO 2: Emails de los 2 editores autorizados (mismos que en Code.gs)
-const EDITOR_EMAILS = [
-  "msandoval@qin.mx",
-  "lidia@qin.mx"
-];
-
-// ▶ PASO 3: Tu Google Client ID (de Google Cloud Console → APIs → Credenciales)
-const GOOGLE_CLIENT_ID = "TU_GOOGLE_CLIENT_ID";
-
 // ── DATA STORE ───────────────────────────────────────────────────────────────
 const STORAGE_KEY = 'merch2026_v4';
 
@@ -676,18 +621,16 @@ const PALETTE = [
   "#5AC8FA","#FF2D55","#FFCC00","#00C7BE","#30B0C7",
   "#32ADE6","#FF6961","#ACE1AF","#B5DEFF","#FFD580","#C3B1E1"
 ];
+const DEFAULT_PRODUCTS = [];
 
-// ── ESTADO DE USUARIO ─────────────────────────────────────────────────────────
-let currentUser  = null;  // { email, name, picture }
-let isEditor     = false;
-let isSynced     = false;
+const DEFAULT_NOTES = [];
 
 function loadData() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) return JSON.parse(raw);
   } catch(e) {}
-  return { products: [], notes: [] };
+  return { products: JSON.parse(JSON.stringify(DEFAULT_PRODUCTS)), notes: [...DEFAULT_NOTES] };
 }
 function saveData() {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch(e) {}
@@ -1118,7 +1061,6 @@ function saveProduct() {
   renderProducts();
   renderView('calendar');
   toast('Producto guardado correctamente','✅');
-  if(isEditor) syncNow();
 }
 
 function deleteProduct() {
@@ -1151,7 +1093,6 @@ function saveNote() {
   document.getElementById('noteOverlay').classList.remove('open');
   renderNotes();
   toast('Nota guardada','✅');
-  if(isEditor) syncNow();
 }
 
 function deleteNote() {
@@ -1210,176 +1151,45 @@ document.addEventListener('keydown', e => {
   }
 });
 
-// ── GOOGLE AUTH ──────────────────────────────────────────────────────────────
-function onGoogleLogin(response) {
-  // Decode JWT credential
-  const payload = JSON.parse(atob(response.credential.split('.')[1]));
-  currentUser = {
-    email   : payload.email,
-    name    : payload.name,
-    picture : payload.picture
-  };
-  isEditor = EDITOR_EMAILS.includes(currentUser.email);
-  updateUserBar();
-  loadFromSheets();  // Load shared data on login
-}
+// ── EXPORTAR DATOS ───────────────────────────────────────────────────────────
+function exportarDatos() {
+  // Genera un nuevo index.html con los datos actuales incrustados
+  const datosActuales = JSON.stringify(state);
+  const ahora = new Date().toLocaleString('es-MX', {
+    day:'2-digit', month:'short', year:'numeric',
+    hour:'2-digit', minute:'2-digit'
+  });
 
-function logout() {
-  currentUser = null;
-  isEditor    = false;
-  isSynced    = false;
-  updateUserBar();
-  toast('Sesión cerrada','👋');
-}
+  // Lee el HTML actual y reemplaza el DEFAULT_PRODUCTS y DEFAULT_NOTES
+  // con los datos actuales del estado
+  let htmlActual = document.documentElement.outerHTML;
 
-function updateUserBar() {
-  const avatar  = document.getElementById('userAvatar');
-  const name    = document.getElementById('userName');
-  const role    = document.getElementById('userRole');
-  const status  = document.getElementById('syncStatus');
-  const btnSync = document.getElementById('btnSync');
-  const btnLogin= document.getElementById('btnGoogleLogin');
-  const btnOut  = document.getElementById('btnLogout');
+  // Reemplaza la clave de storage para que cargue los datos correctos
+  // Inyecta los datos actuales como defaults en el script
+  const marcador = "const DEFAULT_PRODUCTS = [];\n\nconst DEFAULT_NOTES = [];";
+  const datosInyectados = `const DEFAULT_PRODUCTS = ${JSON.stringify(state.products)};\n\nconst DEFAULT_NOTES = ${JSON.stringify(state.notes)};`;
 
-  if(currentUser) {
-    avatar.textContent  = currentUser.name[0].toUpperCase();
-    avatar.style.background = isEditor ? 'rgba(0,122,255,.15)' : 'var(--surface2)';
-    avatar.style.color  = isEditor ? 'var(--accent)' : 'var(--muted)';
-    name.textContent    = currentUser.name;
-    role.textContent    = isEditor ? 'editor' : 'solo lectura';
-    role.style.background   = isEditor ? 'rgba(0,122,255,.1)' : 'var(--surface2)';
-    role.style.color        = isEditor ? 'var(--accent)' : 'var(--muted)';
-    role.style.borderColor  = isEditor ? 'rgba(0,122,255,.3)' : 'var(--border)';
-    btnSync.style.display   = isEditor ? 'inline-flex' : 'none';
-    btnLogin.style.display  = 'none';
-    btnOut.style.display    = 'inline-flex';
-  } else {
-    avatar.textContent  = '?';
-    name.textContent    = 'No conectado';
-    role.textContent    = 'visitante';
-    btnSync.style.display  = 'none';
-    btnLogin.style.display = 'block';
-    btnOut.style.display   = 'none';
-    status.textContent     = '⬤ Sin conectar';
-  }
-}
+  htmlActual = htmlActual.replace(marcador, datosInyectados);
 
-// ── SYNC CON SHEETS ──────────────────────────────────────────────────────────
-async function loadFromSheets() {
-  const status = document.getElementById('syncStatus');
-  status.textContent = '⟳ Cargando...';
-  try {
-    const res  = await fetch(APPS_SCRIPT_URL + '?action=getData');
-    const json = await res.json();
-    if(json.ok) {
-      state.products = json.data.products;
-      state.notes    = json.data.notes;
-      saveData();
-      renderView('calendar');
-      renderView(document.querySelector('.nav-tab.active')?.dataset.view || 'calendar');
-      isSynced = true;
-      status.textContent = '⬤ Sincronizado · ' + new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
-      status.style.color = 'var(--green)';
-    } else {
-      throw new Error(json.error);
-    }
-  } catch(err) {
-    status.textContent = '⬤ Error al cargar';
-    status.style.color = 'var(--red)';
-    toast('No se pudo conectar con Sheets: ' + err.message, '⚠️');
-  }
-}
+  // Agrega un comentario con la fecha de exportación
+  htmlActual = htmlActual.replace(
+    '<title>Merch 2026 · Calendario</title>',
+    `<title>Merch 2026 · Calendario</title>\n<!-- Exportado: ${ahora} por ${window.location.href} -->`
+  );
 
-async function syncNow() {
-  if(!currentUser || !isEditor) return;
-  const status  = document.getElementById('syncStatus');
-  const btnSync = document.getElementById('btnSync');
-  btnSync.textContent = '↑ Guardando...';
-  btnSync.disabled    = true;
-  status.textContent  = '⟳ Sincronizando...';
-  status.style.color  = 'var(--muted)';
-  try {
-    const res  = await fetch(APPS_SCRIPT_URL, {
-      method  : 'POST',
-      headers : { 'Content-Type': 'application/json' },
-      body    : JSON.stringify({
-        action   : 'saveAll',
-        user     : currentUser.email,
-        products : state.products,
-        notes    : state.notes
-      })
-    });
-    const json = await res.json();
-    if(json.ok) {
-      status.textContent = '⬤ Guardado en Sheets · ' + new Date().toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
-      status.style.color = 'var(--green)';
-    } else {
-      throw new Error(json.error);
-    }
-  } catch(err) {
-    status.textContent = '⬤ Error al guardar';
-    status.style.color = 'var(--red)';
-    toast('Error al guardar: ' + err.message, '⚠️');
-  } finally {
-    btnSync.textContent = '↑ Guardar en Sheets';
-    btnSync.disabled    = false;
-  }
-}
+  // Crea el archivo y lo descarga
+  const blob = new Blob([htmlActual], { type: 'text/html;charset=utf-8' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `merch2026_${new Date().toISOString().slice(0,10)}.html`;
+  a.click();
+  URL.revokeObjectURL(url);
 
-// ── HISTORIAL ─────────────────────────────────────────────────────────────────
-async function loadHistory() {
-  const grid = document.getElementById('historyGrid');
-  grid.innerHTML = '<div style="padding:24px;color:var(--muted);font-size:12px">Cargando historial...</div>';
-  try {
-    const res  = await fetch(APPS_SCRIPT_URL + '?action=getHistory');
-    const json = await res.json();
-    if(!json.ok) throw new Error(json.error);
-
-    const history = json.data.history;
-    if(!history.length) {
-      grid.innerHTML = '<div style="padding:32px;text-align:center;color:var(--muted)">Sin registros aún. Los cambios aparecerán aquí cuando los editores guarden datos.</div>';
-      return;
-    }
-
-    grid.innerHTML = `
-    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--r2);overflow:hidden;box-shadow:var(--shadow)">
-      <div style="display:grid;grid-template-columns:160px 220px 180px 1fr;background:var(--surface2);border-bottom:1px solid var(--border);padding:10px 16px;font-size:10px;letter-spacing:.8px;color:var(--muted);text-transform:uppercase;font-weight:600">
-        <span>Fecha y hora</span><span>Usuario</span><span>Acción</span><span>Detalle</span>
-      </div>
-      ${history.map((h,i) => {
-        const dt  = h.timestamp ? new Date(h.timestamp).toLocaleString('es-MX',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}) : '—';
-        const bg  = i%2===0 ? 'var(--surface)' : 'rgba(0,0,0,.015)';
-        const initials = h.user ? h.user.split('@')[0].slice(0,2).toUpperCase() : '?';
-        return `<div style="display:grid;grid-template-columns:160px 220px 180px 1fr;padding:10px 16px;border-bottom:1px solid var(--border);background:${bg};align-items:center;font-size:12px">
-          <span style="color:var(--muted);font-family:var(--font-mono);font-size:11px">${dt}</span>
-          <span style="display:flex;align-items:center;gap:8px">
-            <span style="width:22px;height:22px;border-radius:50%;background:rgba(0,122,255,.12);color:var(--accent);font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">${initials}</span>
-            <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px">${h.user}</span>
-          </span>
-          <span style="color:var(--text2)">${h.action}</span>
-          <span style="color:var(--muted);font-size:11px">${h.detail}</span>
-        </div>`;
-      }).join('')}
-    </div>`;
-  } catch(err) {
-    grid.innerHTML = `<div style="padding:32px;text-align:center;color:var(--red)">Error al cargar historial: ${err.message}</div>`;
-  }
+  toast('Archivo exportado correctamente. Súbelo a GitHub para actualizar la app.', '✅');
 }
 
 // ── INIT ─────────────────────────────────────────────────────────────────────
-// Register history view handler
-document.getElementById('navTabs').addEventListener('click', e => {
-  const tab = e.target.closest('.nav-tab');
-  if(tab && tab.dataset.view === 'history') loadHistory();
-}, { capture: false });
-
-// Init Google Sign-In button when script loads
-window.addEventListener('load', () => {
-  const el = document.getElementById('btnGoogleLogin');
-  if(el) el.style.display = 'block';
-  updateUserBar();
-});
-
 renderCalendar();
 </script>
 </body>
